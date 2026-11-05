@@ -231,6 +231,8 @@ pub(in crate::app) fn settings_tab_content(
             settings.settings_disabled,
             settings.output_name,
             settings.output_name_focus,
+            settings.size_estimate,
+            settings.last_output_bytes,
             palette,
             window,
             cx,

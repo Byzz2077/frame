@@ -219,7 +219,12 @@ fn emit_cancelled_task(id: &str, emit: &mut impl FnMut(ConversionEvent)) {
     emit(ConversionEvent::cancelled(id.to_string()));
 }
 
-fn probe_media_file(file_path: &str) -> Result<ProbeMetadata, ConversionError> {
+/// Reads a media file's streams with `FFprobe`.
+///
+/// # Errors
+///
+/// Returns [`ConversionError`] when `FFprobe` cannot start or the file cannot be read.
+pub fn probe_media_file(file_path: &str) -> Result<ProbeMetadata, ConversionError> {
     let output = Command::new(ffprobe_executable())
         .args(ffprobe_json_args(file_path))
         .output()

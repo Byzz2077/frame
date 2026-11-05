@@ -22,6 +22,7 @@ pub struct FileItem {
     pub path: String,
     pub is_selected_for_conversion: bool,
     pub conversion_error: Option<String>,
+    pub output_size_bytes: Option<u64>,
 }
 
 impl FileItem {
@@ -41,6 +42,7 @@ impl FileItem {
             path,
             is_selected_for_conversion: true,
             conversion_error: None,
+            output_size_bytes: None,
         }
     }
 

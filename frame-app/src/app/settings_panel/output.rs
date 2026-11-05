@@ -5,6 +5,10 @@ use super::{
     frame_choice_button, frame_text_input, normalize_output_config, output_container_options,
     output_processing_mode_options, settings_hint_text, settings_section, theme,
 };
+use crate::{
+    app::SizeEstimateStatus, file_queue::format_file_size, size_estimate::SizeEstimateProgress,
+};
+use frame_core::size_estimate::SizeEstimateMethod;
 
 #[expect(
     clippy::too_many_arguments,
@@ -16,6 +20,8 @@ pub(in crate::app) fn settings_output_tab(
     settings_disabled: bool,
     output_name: &str,
     output_name_focus: Option<&FocusHandle>,
+    size_estimate: Option<&SizeEstimateStatus>,
+    last_output_bytes: Option<u64>,
     palette: &'static theme::ThemePalette,
     window: &mut Window,
     cx: &mut Context<FrameRoot>,
@@ -69,6 +75,14 @@ pub(in crate::app) fn settings_output_tab(
                     )),
             )
         })
+        .child(settings_size_estimate_section(
+            size_estimate,
+            last_output_bytes,
+            settings_disabled,
+            palette,
+            window,
+            cx,
+        ))
         .child(
             settings_section("Output container", palette).child(settings_container_grid(
                 config,
@@ -79,6 +93,109 @@ pub(in crate::app) fn settings_output_tab(
                 cx,
             )),
         )
+}
+
+fn settings_size_estimate_section(
+    size_estimate: Option<&SizeEstimateStatus>,
+    last_output_bytes: Option<u64>,
+    settings_disabled: bool,
+    palette: &'static theme::ThemePalette,
+    window: &mut Window,
+    cx: &mut Context<FrameRoot>,
+) -> gpui::Div {
+    let is_running = matches!(size_estimate, Some(SizeEstimateStatus::Running(_)));
+    let (button_label, button_id) = if is_running {
+        ("Cancel", "output-size-estimate-cancel")
+    } else {
+        ("Estimate size", "output-size-estimate-start")
+    };
+
+    settings_section("Estimated file size", palette)
+        .when_some(
+            size_estimate.and_then(size_estimate_headline),
+            |section, headline| section.child(div().child(headline)),
+        )
+        .child(
+            frame_choice_button(
+                button_id,
+                button_label,
+                false,
+                is_running || !settings_disabled,
+                palette,
+                window,
+                cx,
+            )
+            .on_click(cx.listener(move |root, _: &ClickEvent, _window, cx| {
+                cx.stop_propagation();
+                if is_running {
+                    root.cancel_size_estimate();
+                } else if !settings_disabled {
+                    root.start_size_estimate(cx);
+                }
+                cx.notify();
+            })),
+        )
+        .child(settings_hint_text(
+            size_estimate.map_or_else(
+                || "Test-encodes parts of the video with these settings.".to_string(),
+                size_estimate_hint,
+            ),
+            palette,
+        ))
+        .when_some(last_output_bytes, |section, bytes| {
+            section.child(settings_hint_text(
+                format!("Last output: {}", format_file_size(bytes)),
+                palette,
+            ))
+        })
+}
+
+fn size_estimate_headline(status: &SizeEstimateStatus) -> Option<String> {
+    let SizeEstimateStatus::Ready(estimate) = status else {
+        return None;
+    };
+    Some(if estimate.low_bytes == estimate.high_bytes {
+        format_file_size(estimate.bytes)
+    } else {
+        format!(
+            "≈ {} ({} – {})",
+            format_file_size(estimate.bytes),
+            format_file_size(estimate.low_bytes),
+            format_file_size(estimate.high_bytes)
+        )
+    })
+}
+
+fn size_estimate_hint(status: &SizeEstimateStatus) -> String {
+    match status {
+        SizeEstimateStatus::Running(SizeEstimateProgress::Preparing) => {
+            "Reading the source…".to_string()
+        }
+        SizeEstimateStatus::Running(SizeEstimateProgress::EncodingFull) => {
+            "Encoding the whole clip…".to_string()
+        }
+        SizeEstimateStatus::Running(SizeEstimateProgress::ScanningSource) => {
+            "Scanning the whole video…".to_string()
+        }
+        SizeEstimateStatus::Running(SizeEstimateProgress::EncodingSample { current, total }) => {
+            format!("Test-encoding section {current} of {total}…")
+        }
+        SizeEstimateStatus::Failed(error) => format!("Could not estimate the size: {error}"),
+        SizeEstimateStatus::Ready(estimate) => match estimate.method {
+            SizeEstimateMethod::FullEncode => {
+                "Exact size: the clip was encoded in full with these settings.".to_string()
+            }
+            SizeEstimateMethod::SourcePackets => {
+                "Added up from the source streams this copy keeps.".to_string()
+            }
+            SizeEstimateMethod::FixedBitrate => {
+                "Calculated from the bitrate. Simple footage can come out smaller.".to_string()
+            }
+            SizeEstimateMethod::Sampled { samples } => {
+                format!("Test-encoded {samples} sections and scanned the whole video.")
+            }
+        },
+    }
 }
 
 pub(in crate::app) fn settings_processing_mode_grid(

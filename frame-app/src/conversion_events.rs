@@ -139,6 +139,11 @@ impl ConversionEventState {
             }
             ConversionEvent::Completed(payload) => {
                 queue.update_status(&payload.id, FileStatus::Completed, 100);
+                if let Some(file) = queue.file_by_id_mut(&payload.id) {
+                    file.output_size_bytes = std::fs::metadata(&payload.output_path)
+                        .ok()
+                        .map(|metadata| metadata.len());
+                }
             }
             ConversionEvent::Error(payload) => {
                 if queue.file_by_id(&payload.id).is_some() {

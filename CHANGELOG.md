@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **File Size Estimate:** Adds an Estimate size button to the Output tab. Stream copies are added up from source packets and fixed-bitrate encodes are calculated. Quality-based encodes run short test encodes with the real settings, then use a fast scan of the whole video to scale the result. Clips up to 45 seconds are encoded in full for the exact size.
+- **Last Output Size:** Shows the real size of the finished file in the Output tab.
+- **Animated WebP Options:** Adds lower frame rates and two built-in presets.
 - **Animated WebP Output:** Video and GIF sources can now be converted to animated WebP, with frame rate, quality, lossless, compression effort, preset, and loop count controls. Colors are converted correctly for BT.709 video.
 - **Crop Controls:** Adds an animated aspect ratio select with 4:3, 5:4, portrait variants, and custom ratio or pixel fields in the toolbar. Valid custom values update the preview immediately. Resolution follows the crop while editing and is saved as Custom on Apply; canceling preserves previous export settings. The Output tab shows estimated dimensions after crop, rotation, and scaling. Resolves [#167](https://github.com/66HEX/frame/issues/167).
 - **AV1 Encoding Settings:** Exposes SVT-AV1 presets 0–13 directly and clarifies the 10-bit pixel format choice, while preserving existing preset selections. Resolves [#200](https://github.com/66HEX/frame/issues/200).
@@ -20,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Target Column:** Shows the selected output format instead of the source format.
+- **Stale Frame Rate:** Resets a frame rate the new container does not offer, which previously stayed active with no option selected.
+- **WebP Encoding Controls:** Hides controls that FFmpeg ignores for the selected preset or lossless mode.
 - **WebP Lossless and Compression Settings:** Fixes lossless mode and compression effort being ignored because FFmpeg's preset option replaced them.
 - **Reduced Motion:** Follows the system motion preference on macOS, Windows, and Linux desktops exposing the portal setting, including changes made while Frame is running. UI transitions and preview zoom/pan settle immediately when motion is reduced; media playback remains unchanged.
 - **Tab Navigation:** Moves keyboard focus with the selected settings or main-view tab, keeps one Tab stop per tab rail, and restores focus to the fallback tab when the focused section becomes unavailable.

@@ -516,6 +516,11 @@ impl Render for FrameRoot {
                     subtitle_outline_color_draft: &self.subtitle_ui.outline_color_draft,
                     subtitle_font_color_hsv_draft: self.subtitle_ui.font_color_hsv_draft,
                     subtitle_outline_color_hsv_draft: self.subtitle_ui.outline_color_hsv_draft,
+                    size_estimate: self.current_size_estimate(),
+                    last_output_bytes: self
+                        .file_queue
+                        .selected_file()
+                        .and_then(|file| file.output_size_bytes),
                     preset_name: &self.settings_ui.preset_name_draft,
                     preset_name_focus: Some(&preset_name_focus),
                     presets: &self.presets,

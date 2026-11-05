@@ -19,6 +19,7 @@ mod render;
 mod runtime;
 mod settings_actions;
 mod settings_panel;
+mod size_estimate_actions;
 mod state;
 mod system_motion;
 #[cfg(test)]
@@ -301,7 +302,10 @@ pub struct FrameRoot {
     skipped_update_version: Option<String>,
     last_update_check_at: Option<u64>,
     update_ui: UpdateUiState,
+    size_estimate: Option<SizeEstimateRun>,
 }
+
+use size_estimate_actions::{SizeEstimateRun, SizeEstimateStatus};
 
 #[derive(Default)]
 struct DragDropUiState {
@@ -861,6 +865,8 @@ struct SettingsRenderState<'a> {
     subtitle_outline_color_draft: &'a str,
     subtitle_font_color_hsv_draft: SettingsSubtitleHsv,
     subtitle_outline_color_hsv_draft: SettingsSubtitleHsv,
+    size_estimate: Option<&'a SizeEstimateStatus>,
+    last_output_bytes: Option<u64>,
     preset_name: &'a str,
     preset_name_focus: Option<&'a FocusHandle>,
     presets: &'a [PresetDefinition],

@@ -125,6 +125,7 @@ impl FrameRoot {
             skipped_update_version: persisted_settings.skipped_update_version,
             last_update_check_at: persisted_settings.last_update_check_at,
             update_ui: UpdateUiState::default(),
+            size_estimate: None,
         };
 
         root.apply_visual_fixture(visual_fixture_from_env_value(

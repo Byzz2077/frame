@@ -34,13 +34,13 @@ pub(in crate::app) fn settings_value_badge(
 }
 
 pub(in crate::app) fn settings_hint_text(
-    text: &'static str,
+    text: impl AsRef<str>,
     palette: &'static theme::ThemePalette,
 ) -> gpui::Div {
     div()
         .text_size(theme::ui_rem(theme::TEXT_UI_BASE_SIZE))
         .text_color(color(palette.text_muted))
-        .child(theme::ui_text(text))
+        .child(theme::ui_text(text.as_ref()))
 }
 
 pub(in crate::app) fn settings_value_row(

@@ -18,6 +18,7 @@ pub mod preview_engine;
 pub mod runtime_binaries;
 pub(crate) mod runtime_environment;
 pub mod settings;
+pub mod size_estimate;
 pub mod source_metadata;
 pub mod theme;
 pub mod update_runtime;

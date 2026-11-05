@@ -94,6 +94,7 @@ details, tier suggestions, and a launch checklist.
   temperature, sharpen, Gaussian blur, denoise, deband, vignette, grayscale,
   and deinterlace controls.
 - **GIF Controls:** Frame rate, color count, dithering, and loop count.
+- **File Size Estimate:** Exact for short clips, calculated for stream copies and fixed bitrates, and measured with test encodes for quality-based settings.
 - **Animated WebP Controls:** Frame rate, lossy or lossless mode, quality, compression effort, preset, and loop count.
 - **Audio Controls:** Codec, bitrate, VBR quality, channel layout, volume, and
   explicit per-track selection; only checked source tracks are exported.

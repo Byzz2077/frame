@@ -4093,6 +4093,8 @@ mod preview_shell {
             subtitle_outline_color_draft: "",
             subtitle_font_color_hsv_draft: hex_to_subtitle_hsv(DEFAULT_SUBTITLE_FONT_COLOR),
             subtitle_outline_color_hsv_draft: hex_to_subtitle_hsv(DEFAULT_SUBTITLE_OUTLINE_COLOR),
+            size_estimate: None,
+            last_output_bytes: None,
             preset_name: "",
             preset_name_focus: None,
             presets: &[],
