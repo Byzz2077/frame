@@ -92,6 +92,21 @@ mod output_options {
     }
 
     #[test]
+    fn changing_container_resets_a_frame_rate_the_new_container_does_not_offer() {
+        let mut config = ConversionConfig {
+            container: "gif".to_string(),
+            fps: "12".to_string(),
+            ..ConversionConfig::default()
+        };
+
+        apply_output_container(&mut config, "webp");
+        assert_eq!(config.fps, "12");
+
+        apply_output_container(&mut config, "mp4");
+        assert_eq!(config.fps, "original");
+    }
+
+    #[test]
     fn webp_output_for_video_uses_libwebp_and_turns_off_stream_copy_and_deinterlace() {
         let mut config = ConversionConfig {
             processing_mode: ProcessingMode::Copy,

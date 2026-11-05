@@ -5,17 +5,17 @@ use super::{
         DEFAULT_AUDIO_VOLUME, DEFAULT_FPS, DEFAULT_GIF_DITHER, DEFAULT_IMAGE_JPEG_HUFFMAN,
         DEFAULT_IMAGE_PNG_PREDICTION, DEFAULT_IMAGE_TIFF_COMPRESSION, DEFAULT_IMAGE_WEBP_PRESET,
         DEFAULT_PIXEL_FORMAT, DEFAULT_RESOLUTION, DEFAULT_VIDEO_BITRATE_MODE,
-        ExternalSubtitleTrack, FPS_OPTIONS, GIF_DITHER_OPTIONS, GIF_FPS_OPTIONS,
-        IMAGE_JPEG_HUFFMAN_OPTIONS, IMAGE_PNG_PREDICTION_OPTIONS, IMAGE_TIFF_COMPRESSION_OPTIONS,
-        IMAGE_WEBP_PRESET_OPTIONS, MAX_AUDIO_VOLUME, MAX_GIF_COLORS, MAX_GIF_LOOP,
-        MAX_IMAGE_JPEG_QUALITY, MAX_IMAGE_PNG_COMPRESSION, MAX_IMAGE_WEBP_COMPRESSION,
-        MAX_IMAGE_WEBP_QUALITY, MetadataField, MetadataMode, PresetDefinition, ProcessingMode,
-        RESOLUTION_OPTIONS, SCALING_ALGORITHM_OPTIONS, SUBTITLE_FONT_SIZES, SourceKind,
-        SourceMetadata, SubtitlePosition, VIDEO_CODEC_DEFINITIONS, VIDEO_PIXEL_FORMAT_DEFINITIONS,
+        ExternalSubtitleTrack, GIF_DITHER_OPTIONS, IMAGE_JPEG_HUFFMAN_OPTIONS,
+        IMAGE_PNG_PREDICTION_OPTIONS, IMAGE_TIFF_COMPRESSION_OPTIONS, IMAGE_WEBP_PRESET_OPTIONS,
+        MAX_AUDIO_VOLUME, MAX_GIF_COLORS, MAX_GIF_LOOP, MAX_IMAGE_JPEG_QUALITY,
+        MAX_IMAGE_PNG_COMPRESSION, MAX_IMAGE_WEBP_COMPRESSION, MAX_IMAGE_WEBP_QUALITY,
+        MetadataField, MetadataMode, PresetDefinition, ProcessingMode, RESOLUTION_OPTIONS,
+        SCALING_ALGORITHM_OPTIONS, SUBTITLE_FONT_SIZES, SourceKind, SourceMetadata,
+        SubtitlePosition, VIDEO_CODEC_DEFINITIONS, VIDEO_PIXEL_FORMAT_DEFINITIONS,
     },
     options::{
         first_allowed_video_codec, first_allowed_video_pixel_format, first_allowed_video_preset,
-        is_hardware_video_codec, is_nvenc_video_codec, is_video_preset_allowed,
+        fps_options, is_hardware_video_codec, is_nvenc_video_codec, is_video_preset_allowed,
         is_videotoolbox_video_codec, mp2_original_channels_are_unsupported, normalized_hex_color,
     },
     rules::{
@@ -452,12 +452,7 @@ pub fn apply_scaling_algorithm(config: &mut ConversionConfig, algorithm: &str) -
 }
 
 pub fn apply_fps(config: &mut ConversionConfig, fps: &str) -> bool {
-    let valid = if is_gif_container(&config.container) {
-        GIF_FPS_OPTIONS.contains(&fps)
-    } else {
-        FPS_OPTIONS.contains(&fps)
-    };
-    if !valid {
+    if !fps_options(&config.container).contains(&fps) {
         return false;
     }
 
@@ -941,6 +936,10 @@ pub fn normalize_video_config(
 
     if is_image_container(&config.container) {
         config.video_filters.deinterlace = super::model::DeinterlaceMode::Off;
+    }
+
+    if !fps_options(&config.container).contains(&config.fps.as_str()) {
+        config.fps = DEFAULT_FPS.to_string();
     }
 
     if is_audio_container {

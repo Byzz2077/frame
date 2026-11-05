@@ -334,9 +334,8 @@ pub(in crate::app) fn settings_video_fps_section(
     window: &mut Window,
     cx: &mut Context<FrameRoot>,
 ) -> gpui::Div {
-    let is_gif = is_gif_container(&config.container);
     let mut grid = div().grid().grid_cols(2).gap_2();
-    for fps in fps_options(is_gif) {
+    for fps in fps_options(&config.container) {
         grid = grid.child(
             frame_choice_button(
                 format!("video-fps-{fps}"),

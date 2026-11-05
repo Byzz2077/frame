@@ -13,7 +13,7 @@ use super::{
         SourceMetadata, SubtitleFontOption, SubtitleFontSizeOption, SubtitlePosition,
         SubtitlePositionOption, SubtitleTrackOption, VIDEO_CODEC_DEFINITIONS,
         VIDEO_PIXEL_FORMAT_DEFINITIONS, VIDEO_PRESETS, VideoCodecCapability, VideoCodecOption,
-        VideoPixelFormatOption, VideoPresetOption,
+        VideoPixelFormatOption, VideoPresetOption, WEBP_FPS_OPTIONS,
     },
     rules::{
         is_audio_codec_allowed_for_container, is_audio_only_container,
@@ -568,6 +568,16 @@ pub fn default_presets() -> Vec<PresetDefinition> {
                 ..preset_config("mp4")
             },
         ),
+        PresetDefinition::built_in(
+            "webp-web-small",
+            "Animated WebP Small",
+            webp_preset_config("custom", Some("640"), Some("360"), "15", 60),
+        ),
+        PresetDefinition::built_in(
+            "webp-quality",
+            "Animated WebP High Quality",
+            webp_preset_config("720p", None, None, "30", 80),
+        ),
     ]
 }
 
@@ -668,9 +678,11 @@ pub const fn scaling_algorithm_options() -> &'static [&'static str] {
 }
 
 #[must_use]
-pub const fn fps_options(is_gif: bool) -> &'static [&'static str] {
-    if is_gif {
+pub const fn fps_options(container: &str) -> &'static [&'static str] {
+    if is_gif_container(container) {
         &GIF_FPS_OPTIONS
+    } else if is_webp_container(container) {
+        &WEBP_FPS_OPTIONS
     } else {
         &FPS_OPTIONS
     }
@@ -950,6 +962,32 @@ fn gif_preset_config(
         },
         gif_colors: colors,
         gif_dither: dither.to_string(),
+        ..ConversionConfig::default()
+    }
+}
+
+fn webp_preset_config(
+    resolution: &str,
+    custom_width: Option<&str>,
+    custom_height: Option<&str>,
+    fps: &str,
+    quality: u32,
+) -> ConversionConfig {
+    ConversionConfig {
+        container: "webp".to_string(),
+        video_codec: "libwebp".to_string(),
+        video_bitrate: "0".to_string(),
+        audio_bitrate: "0".to_string(),
+        resolution: resolution.to_string(),
+        custom_width: custom_width.map(str::to_string),
+        custom_height: custom_height.map(str::to_string),
+        scaling_algorithm: "lanczos".to_string(),
+        fps: fps.to_string(),
+        metadata: MetadataConfig {
+            mode: MetadataMode::Clean,
+            ..MetadataConfig::default()
+        },
+        image_webp_quality: quality,
         ..ConversionConfig::default()
     }
 }

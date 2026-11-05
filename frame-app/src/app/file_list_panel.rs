@@ -211,7 +211,7 @@ pub(super) fn file_list_row(
         "{}, {}, {}, {}",
         file.name,
         format_file_size(file.size_bytes),
-        file.original_format,
+        file.config.container,
         file.row_state_label()
     );
 
@@ -273,7 +273,7 @@ pub(super) fn file_list_row(
                     color(palette.text_muted),
                 ))
                 .child(row_label(
-                    file.original_format.clone(),
+                    file.config.container.clone(),
                     2,
                     true,
                     color(palette.text_muted),

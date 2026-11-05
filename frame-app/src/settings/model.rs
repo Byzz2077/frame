@@ -1302,6 +1302,8 @@ pub(super) const SCALING_ALGORITHM_OPTIONS: [&str; 4] =
     ["bicubic", "lanczos", "bilinear", "nearest"];
 pub(super) const FPS_OPTIONS: [&str; 4] = ["original", "24", "30", "60"];
 pub(super) const GIF_FPS_OPTIONS: [&str; 8] = ["original", "8", "10", "12", "15", "20", "24", "30"];
+pub(super) const WEBP_FPS_OPTIONS: [&str; 9] =
+    ["original", "8", "10", "12", "15", "20", "24", "30", "60"];
 pub(super) const GIF_COLOR_OPTIONS: [u16; 4] = [32, 64, 128, 256];
 pub(super) const GIF_DITHER_OPTIONS: [&str; 4] = ["sierra2_4a", "floyd_steinberg", "bayer", "none"];
 

@@ -182,6 +182,10 @@ pub(in crate::app) fn settings_image_webp_section(
     window: &mut Window,
     cx: &mut Context<FrameRoot>,
 ) -> gpui::Div {
+    // FFmpeg's WebP presets replace compression effort, and Frame omits them for lossless.
+    let is_compression_available =
+        config.image_webp_lossless || config.image_webp_preset == "default";
+
     settings_section("WebP encoding", palette)
         .child(settings_image_webp_mode_grid(
             config,
@@ -215,27 +219,37 @@ pub(in crate::app) fn settings_image_webp_section(
             palette,
             cx,
         ))
-        .child(settings_image_range_field(
-            "Compression effort",
-            config.image_webp_compression.to_string(),
-            config.image_webp_compression,
-            0,
-            6,
-            "Fastest",
-            "Smallest",
-            SettingsImageRangeTarget::WebpCompression,
-            settings_disabled,
-            palette,
-            cx,
-        ))
-        .child(settings_image_option_list(
-            image_webp_preset_options(config, settings_disabled),
-            "image-webp-preset",
-            palette,
-            window,
-            cx,
-            apply_image_webp_preset,
-        ))
+        .when(is_compression_available, |section| {
+            section.child(settings_image_range_field(
+                "Compression effort",
+                config.image_webp_compression.to_string(),
+                config.image_webp_compression,
+                0,
+                6,
+                "Fastest",
+                "Smallest",
+                SettingsImageRangeTarget::WebpCompression,
+                settings_disabled,
+                palette,
+                cx,
+            ))
+        })
+        .when(!is_compression_available, |section| {
+            section.child(settings_hint_text(
+                "This preset sets its own compression effort.",
+                palette,
+            ))
+        })
+        .when(!config.image_webp_lossless, |section| {
+            section.child(settings_image_option_list(
+                image_webp_preset_options(config, settings_disabled),
+                "image-webp-preset",
+                palette,
+                window,
+                cx,
+                apply_image_webp_preset,
+            ))
+        })
 }
 
 fn settings_image_png_section(
