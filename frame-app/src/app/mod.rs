@@ -138,7 +138,7 @@ use crate::{
         image_jpeg_huffman_options, image_png_prediction_options, image_tiff_compression_options,
         image_webp_preset_options, initialize_output_config, is_gif_container,
         is_hardware_video_codec, is_nvenc_video_codec, is_videotoolbox_video_codec,
-        metadata_field_options, metadata_field_value, metadata_mode_description,
+        is_webp_container, metadata_field_options, metadata_field_value, metadata_mode_description,
         metadata_mode_options, mp2_original_channels_are_unsupported, normalize_output_config,
         normalized_hex_color, output_container_options, output_processing_mode_options,
         preset_options, remove_external_subtitle_track, resolution_options,

@@ -844,6 +844,104 @@ fn gif_output_should_write_palette_gif_video() -> TestResult {
     Ok(())
 }
 
+/// Returns each animation frame's duration in milliseconds.
+fn webp_frame_durations(path: &Path) -> TestResult<Vec<u32>> {
+    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    if bytes.len() < 12 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WEBP" {
+        return Err("output is not a RIFF WebP file".to_string());
+    }
+
+    let mut durations = Vec::new();
+    let mut offset = 12;
+    while offset + 8 <= bytes.len() {
+        let size = u32::from_le_bytes([
+            bytes[offset + 4],
+            bytes[offset + 5],
+            bytes[offset + 6],
+            bytes[offset + 7],
+        ]) as usize;
+        if &bytes[offset..offset + 4] == b"ANMF" {
+            let duration = &bytes[offset + 8 + 12..offset + 8 + 15];
+            durations.push(u32::from_le_bytes([
+                duration[0],
+                duration[1],
+                duration[2],
+                0,
+            ]));
+        }
+        offset += 8 + size + size % 2;
+    }
+    Ok(durations)
+}
+
+#[test]
+#[ignore = "requires FFmpeg/FFprobe; run with --ignored"]
+fn webp_output_should_animate_the_full_video_duration() -> TestResult {
+    let tools = Toolchain::discover()?;
+    let sandbox = Sandbox::new("animated_webp_output")?;
+    let input = sandbox.path("source.mp4");
+    let output = sandbox.path("output.webp");
+
+    generate_h264_aac_source(&tools, &input, 0.75, 48, 32)?;
+    let config = video_config("webp", "libwebp", "aac");
+    convert(&tools, &input, &output, &config)?;
+
+    // libwebp merges near-identical frames, so the total duration is what must survive.
+    let durations = webp_frame_durations(&output)?;
+    assert!(durations.len() > 1, "expected an animation: {durations:?}");
+    let total: u32 = durations.iter().sum();
+    assert!((740..=760).contains(&total), "unexpected duration: {total}");
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires FFmpeg/FFprobe; run with --ignored"]
+fn lossless_webp_output_should_write_lossless_frames() -> TestResult {
+    let tools = Toolchain::discover()?;
+    let sandbox = Sandbox::new("lossless_animated_webp")?;
+    let input = sandbox.path("source.mp4");
+    let output = sandbox.path("output.webp");
+
+    generate_h264_aac_source(&tools, &input, 0.5, 48, 32)?;
+    let mut config = video_config("webp", "libwebp", "aac");
+    config.image_webp_lossless = true;
+    convert(&tools, &input, &output, &config)?;
+
+    let bytes = fs::read(&output).map_err(|error| error.to_string())?;
+    assert!(bytes.windows(4).any(|chunk| chunk == b"VP8L"));
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires FFmpeg/FFprobe; run with --ignored"]
+fn webp_output_should_support_trim_and_overlay() -> TestResult {
+    let tools = Toolchain::discover()?;
+    let sandbox = Sandbox::new("animated_webp_trim_overlay")?;
+    let input = sandbox.path("source.mp4");
+    let overlay = sandbox.path("overlay.ppm");
+    let output = sandbox.path("output.webp");
+
+    generate_h264_aac_source(&tools, &input, 1.0, 96, 64)?;
+    write_solid_ppm(&overlay, 16, 16, Rgb::RED)?;
+    let mut config = video_config("webp", "libwebp", "aac");
+    config.start_time = Some("0.25".to_string());
+    config.end_time = Some("0.75".to_string());
+    config.overlay = Some(OverlayConfig {
+        enabled: true,
+        path: path_arg(&overlay),
+        x: 0.5,
+        y: 0.5,
+        width: 0.25,
+        opacity: 1.0,
+        anchor: "center".to_string(),
+    });
+    convert(&tools, &input, &output, &config)?;
+
+    let total: u32 = webp_frame_durations(&output)?.iter().sum();
+    assert!((450..=550).contains(&total), "unexpected duration: {total}");
+    Ok(())
+}
+
 #[test]
 #[ignore = "requires FFmpeg/FFprobe; run with --ignored"]
 fn odd_yuv420p_reencode_should_pad_to_even_dimensions() -> TestResult {

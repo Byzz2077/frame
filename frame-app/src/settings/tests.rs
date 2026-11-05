@@ -81,13 +81,32 @@ mod output_options {
     }
 
     #[test]
-    fn visible_output_containers_for_video_exclude_image_formats() {
+    fn visible_output_containers_for_video_offer_webp_but_no_still_image_formats() {
         assert_eq!(
             visible_output_containers(None),
             vec![
-                "mp4", "mkv", "webm", "mov", "m2t", "mts", "m2ts", "gif", "mp3", "m4a", "wav",
-                "flac"
+                "mp4", "mkv", "webm", "mov", "m2t", "mts", "m2ts", "gif", "webp", "mp3", "m4a",
+                "wav", "flac"
             ]
+        );
+    }
+
+    #[test]
+    fn webp_output_for_video_uses_libwebp_and_turns_off_stream_copy_and_deinterlace() {
+        let mut config = ConversionConfig {
+            processing_mode: ProcessingMode::Copy,
+            ..ConversionConfig::default()
+        };
+        config.video_filters.deinterlace = crate::settings::model::DeinterlaceMode::On;
+
+        apply_output_container(&mut config, "webp");
+        normalize_output_config(&mut config, None);
+
+        assert_eq!(config.video_codec, "libwebp");
+        assert_eq!(config.processing_mode, ProcessingMode::Reencode);
+        assert_eq!(
+            config.video_filters.deinterlace,
+            crate::settings::model::DeinterlaceMode::Off
         );
     }
 

@@ -8,7 +8,9 @@ use std::{
 };
 
 use frame_core::{
-    args::{build_ffmpeg_args, build_output_path, validate_task_input},
+    args::{
+        ENCODER_PROGRESS_LINE_PREFIX, build_ffmpeg_args, build_output_path, validate_task_input,
+    },
     error::ConversionError,
     events::ConversionEvent,
     probe::{ffprobe_json_args, parse_ffprobe_stdout},
@@ -299,7 +301,9 @@ fn handle_ffmpeg_line(
     total_duration: &mut Option<f64>,
     emit: &mut impl FnMut(ConversionEvent),
 ) {
-    emit(ConversionEvent::log(task.id.clone(), line));
+    if !line.starts_with(ENCODER_PROGRESS_LINE_PREFIX) {
+        emit(ConversionEvent::log(task.id.clone(), line));
+    }
     if let Some(progress) = ffmpeg_progress_from_line(line, expected_duration, total_duration) {
         emit(ConversionEvent::progress(task.id.clone(), progress));
     }

@@ -12,7 +12,7 @@ use super::{
     settings_tab_icon, settings_video_filters_tab, settings_video_tab, theme,
     visible_settings_tabs,
 };
-use crate::settings::source_kind_for;
+use crate::settings::{is_image_container, source_kind_for};
 
 pub(in crate::app) fn settings_panel(
     settings: &SettingsRenderState<'_>,
@@ -253,7 +253,8 @@ pub(in crate::app) fn settings_tab_content(
         SettingsTab::VideoFilters => content.child(settings_video_filters_tab(
             settings.config,
             settings.settings_disabled,
-            source_kind_for(settings.metadata) == SourceKind::Image,
+            source_kind_for(settings.metadata) == SourceKind::Image
+                || is_image_container(&settings.config.container),
             settings.available_filters,
             palette,
             window,

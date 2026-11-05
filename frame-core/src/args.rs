@@ -1,28 +1,34 @@
 use std::{collections::HashSet, path::Path};
 
 use crate::codec::{
-    add_audio_codec_args, add_fps_args, add_video_codec_args, audio_codec_supports_vbr,
-    subtitle_output_codec,
+    add_audio_codec_args, add_fps_args, add_still_image_codec_args, add_video_codec_args,
+    audio_codec_supports_vbr, subtitle_output_codec,
 };
 use crate::container::{
     TransportStreamProfile, is_transport_stream_container, transport_stream_profile,
 };
 use crate::error::ConversionError;
 use crate::filters::{
-    build_audio_filters, build_encode_overlay_filter_complex, build_encode_video_filters,
-    build_overlay_filter_complex, build_video_filters, has_overlay,
+    VIDEO_OUTPUT_LABEL, build_audio_filters, build_encode_overlay_filter_complex,
+    build_encode_video_filters, build_overlay_filter_complex, build_video_filters, has_overlay,
 };
 use crate::media_filters::validate_media_filters;
 use crate::media_rules::{
-    all_containers, container_supports_audio, container_supports_subtitles, is_audio_codec_allowed,
-    is_audio_stream_codec_allowed, is_image_container, is_video_codec_allowed,
-    is_video_only_container, is_video_pixel_format_allowed, is_video_stream_codec_allowed,
+    all_containers, container_supports_audio, container_supports_subtitles,
+    is_animated_webp_output, is_audio_codec_allowed, is_audio_stream_codec_allowed,
+    is_image_container, is_video_codec_allowed, is_video_only_container,
+    is_video_pixel_format_allowed, is_video_stream_codec_allowed,
 };
 use crate::types::{
     AudioTrack, ConversionConfig, ExternalSubtitleTrack, MetadataConfig, MetadataMode,
     ProbeMetadata, SubtitleTrack, VOLUME_EPSILON,
 };
 use crate::utils::{get_hwaccel_args, is_audio_only_container, parse_time};
+
+/// Marks per-frame progress lines so the runner can keep them out of the visible log.
+pub const ENCODER_PROGRESS_LINE_PREFIX: &str = "frame-encoder-progress";
+
+const ANIMATED_WEBP_OUTPUT_LABEL: &str = "webp_out";
 
 fn is_copy_mode(config: &ConversionConfig) -> bool {
     config.processing_mode == "copy"
@@ -623,6 +629,8 @@ pub fn build_ffmpeg_args(
         args.push(config.gif_loop.to_string());
         args.push("-f".to_string());
         args.push("gif".to_string());
+    } else if is_animated_webp_output(&config.container, &probe.media_kind) {
+        add_animated_webp_args(&mut args, config, probe, use_overlay);
     } else if is_image_output {
         add_video_codec_args(&mut args, config);
         if has_custom_pixel_format(config) {
@@ -718,6 +726,70 @@ pub fn build_ffmpeg_args(
     args.push(output.to_string());
 
     Ok(args)
+}
+
+fn add_animated_webp_args(
+    args: &mut Vec<String>,
+    config: &ConversionConfig,
+    probe: &ProbeMetadata,
+    use_overlay: bool,
+) {
+    let color_filters = animated_webp_color_filters(probe);
+    if use_overlay {
+        args.push("-filter_complex".to_string());
+        args.push(format!(
+            "{};[{VIDEO_OUTPUT_LABEL}]{}[{ANIMATED_WEBP_OUTPUT_LABEL}]",
+            build_overlay_filter_complex(config),
+            color_filters.join(",")
+        ));
+        args.push("-map".to_string());
+        args.push(format!("[{ANIMATED_WEBP_OUTPUT_LABEL}]"));
+    } else {
+        let mut filters = build_video_filters(config, true);
+        filters.extend(color_filters);
+        args.push("-vf".to_string());
+        args.push(filters.join(","));
+        args.push("-map".to_string());
+        args.push("0:v:0".to_string());
+    }
+    add_fps_args(args, config);
+    args.push("-an".to_string());
+
+    args.push("-c:v".to_string());
+    args.push("libwebp_anim".to_string());
+    add_still_image_codec_args(args, config);
+
+    // libwebp_anim only emits packets at the end, so FFmpeg's own stats stay empty
+    // until the file is finished. Report frames as they enter the encoder instead.
+    args.push("-stats_enc_pre".to_string());
+    args.push("pipe:2".to_string());
+    args.push("-stats_enc_pre_fmt".to_string());
+    args.push(format!("{ENCODER_PROGRESS_LINE_PREFIX} time={{t}}"));
+
+    args.push("-loop".to_string());
+    args.push(config.gif_loop.to_string());
+    args.push("-f".to_string());
+    args.push("webp".to_string());
+}
+
+/// libwebp reads YUV input as BT.601, which shifts the colors of BT.709 video. Passing it
+/// RGB lets `FFmpeg` convert from the real matrix, and lossless output stays pixel-exact.
+fn animated_webp_color_filters(probe: &ProbeMetadata) -> Vec<String> {
+    let is_color_space_untagged = probe.color_space.as_deref().is_none_or(|value| {
+        value.is_empty()
+            || value.eq_ignore_ascii_case("unknown")
+            || value.eq_ignore_ascii_case("unspecified")
+    });
+    let is_hd = probe.width.is_some_and(|width| width >= 1280)
+        || probe.height.is_some_and(|height| height > 576);
+
+    let mut filters = Vec::with_capacity(2);
+    if is_color_space_untagged && is_hd {
+        // Players assume BT.709 for untagged HD video; FFmpeg would assume BT.601.
+        filters.push("scale=in_color_matrix=bt709".to_string());
+    }
+    filters.push("format=bgra".to_string());
+    filters
 }
 
 fn add_container_output_args(args: &mut Vec<String>, container: &str) {
@@ -1720,7 +1792,6 @@ mod tests {
     #[test]
     fn build_ffmpeg_args_adds_webp_quality_and_compression_options() {
         let mut config = sample_config("webp", "libwebp");
-        config.image_webp_lossless = true;
         config.image_webp_quality = 88;
         config.image_webp_compression = 6;
         config.image_webp_preset = "photo".to_string();
@@ -1728,10 +1799,28 @@ mod tests {
         let args = build_ffmpeg_args("input.mov", "output.webp", &config, &sample_probe())
             .expect("arguments should build");
 
-        assert!(args_contains_pair(&args, "-lossless", "1"));
+        assert!(args_contains_pair(&args, "-lossless", "0"));
         assert!(args_contains_pair(&args, "-quality", "88"));
         assert!(args_contains_pair(&args, "-compression_level", "6"));
         assert!(args_contains_pair(&args, "-preset", "photo"));
+    }
+
+    #[test]
+    fn build_ffmpeg_args_omits_webp_preset_when_it_would_override_settings() {
+        let mut config = sample_config("webp", "libwebp");
+        config.image_webp_lossless = true;
+        config.image_webp_preset = "photo".to_string();
+        let lossless_args = build_ffmpeg_args("input.mov", "output.webp", &config, &sample_probe())
+            .expect("arguments should build");
+
+        config.image_webp_lossless = false;
+        config.image_webp_preset = "default".to_string();
+        let default_args = build_ffmpeg_args("input.mov", "output.webp", &config, &sample_probe())
+            .expect("arguments should build");
+
+        assert!(args_contains_pair(&lossless_args, "-lossless", "1"));
+        assert!(!lossless_args.iter().any(|arg| arg == "-preset"));
+        assert!(!default_args.iter().any(|arg| arg == "-preset"));
     }
 
     #[test]
@@ -2154,6 +2243,61 @@ mod tests {
         let _ = fs::remove_file(input);
         let _ = fs::remove_file(subtitle);
         assert!(error.to_string().contains("control characters"));
+    }
+
+    #[test]
+    fn build_ffmpeg_args_keeps_webp_single_frame_for_image_sources() {
+        let config = sample_config("webp", "libwebp");
+        let mut probe = sample_probe();
+        probe.media_kind = "image".to_string();
+
+        let args = build_ffmpeg_args("input.png", "output.webp", &config, &probe)
+            .expect("still WebP args should build");
+
+        assert!(args_contains_pair(&args, "-c:v", "libwebp"));
+        assert!(args_contains_pair(&args, "-frames:v", "1"));
+    }
+
+    #[test]
+    fn build_ffmpeg_args_writes_animated_webp_for_video_sources() {
+        let mut config = sample_config("webp", "libwebp");
+        config.gif_loop = 3;
+        config.fps = "24".to_string();
+        config.image_webp_quality = 88;
+        config.image_webp_compression = 2;
+        let mut probe = sample_probe();
+        probe.color_space = Some("bt709".to_string());
+
+        let args = build_ffmpeg_args("input.mp4", "output.webp", &config, &probe)
+            .expect("animated WebP args should build");
+
+        assert!(args_contains_pair(&args, "-c:v", "libwebp_anim"));
+        assert!(args_contains_pair(&args, "-vf", "format=bgra"));
+        assert!(args_contains_pair(&args, "-r", "24"));
+        assert!(args_contains_pair(&args, "-quality", "88"));
+        assert!(args_contains_pair(&args, "-compression_level", "2"));
+        assert!(args_contains_pair(&args, "-loop", "3"));
+        assert!(args_contains_pair(&args, "-f", "webp"));
+        assert!(args_contains_pair(&args, "-stats_enc_pre", "pipe:2"));
+        assert!(!args.iter().any(|arg| arg == "-frames:v"));
+    }
+
+    #[test]
+    fn build_ffmpeg_args_assumes_bt709_for_untagged_hd_animated_webp() {
+        let config = sample_config("webp", "libwebp");
+        let mut probe = sample_probe();
+        probe.color_space = None;
+        probe.width = Some(1920);
+        probe.height = Some(1080);
+
+        let args = build_ffmpeg_args("input.mp4", "output.webp", &config, &probe)
+            .expect("animated WebP args should build");
+
+        assert!(args_contains_pair(
+            &args,
+            "-vf",
+            "scale=in_color_matrix=bt709,format=bgra"
+        ));
     }
 
     #[test]

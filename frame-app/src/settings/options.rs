@@ -20,7 +20,7 @@ use super::{
         is_audio_stream_codec_allowed_for_container, is_gif_container, is_image_container,
         is_subtitle_codec_allowed_for_container, is_video_codec_allowed_for_container,
         is_video_pixel_format_allowed_for_container, is_video_stream_codec_allowed_for_container,
-        source_kind_for,
+        is_webp_container, source_kind_for,
     },
     source_info::{audio_track_bitrate, audio_track_detail, display_source_value},
 };
@@ -48,7 +48,7 @@ pub fn visible_output_containers(metadata: Option<&SourceMetadata>) -> Vec<Strin
             if is_source_image {
                 is_image_container(container) || is_gif_container(container)
             } else {
-                !is_image_container(container)
+                !is_image_container(container) || is_webp_container(container)
             }
         })
         .cloned()

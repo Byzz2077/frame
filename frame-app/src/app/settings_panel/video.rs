@@ -91,6 +91,25 @@ pub(in crate::app) fn settings_video_tab(
             ));
     }
 
+    if is_webp_container(&config.container) {
+        return content
+            .child(settings_image_webp_section(
+                config,
+                settings_disabled,
+                palette,
+                window,
+                cx,
+            ))
+            .child(settings_video_gif_loop_section(
+                config,
+                settings_disabled,
+                focuses.gif_loop,
+                palette,
+                window,
+                cx,
+            ));
+    }
+
     content
         .child(settings_video_encoder_section(
             config,

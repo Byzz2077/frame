@@ -70,7 +70,7 @@ details, tier suggestions, and a launch checklist.
   - **Video:** `mp4`, `mkv`, `webm`, `mov`, `m2t` (188-byte MPEG-TS), `mts`
     and `m2ts` (192-byte M2TS), `gif`
   - **Audio:** `mp3`, `m4a`, `wav`, `flac`
-  - **Image:** `png`, `jpg`, `webp`, `bmp`, `tiff`
+  - **Image:** `png`, `jpg`, `webp`, `bmp`, `tiff` (`webp` is animated for video sources)
 - **Video Encoders:**
   - `libx264` (H.264 / AVC)
   - `libx265` (H.265 / HEVC)
@@ -94,6 +94,7 @@ details, tier suggestions, and a launch checklist.
   temperature, sharpen, Gaussian blur, denoise, deband, vignette, grayscale,
   and deinterlace controls.
 - **GIF Controls:** Frame rate, color count, dithering, and loop count.
+- **Animated WebP Controls:** Frame rate, lossy or lossless mode, quality, compression effort, preset, and loop count.
 - **Audio Controls:** Codec, bitrate, VBR quality, channel layout, volume, and
   explicit per-track selection; only checked source tracks are exported.
 - **Audio Filters:** Normalize, limiter, compressor, bass, treble, high-pass,

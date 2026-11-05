@@ -87,7 +87,7 @@ pub fn add_video_codec_args(args: &mut Vec<String>, config: &ConversionConfig) {
     }
 }
 
-fn add_still_image_codec_args(args: &mut Vec<String>, config: &ConversionConfig) {
+pub fn add_still_image_codec_args(args: &mut Vec<String>, config: &ConversionConfig) {
     match config.video_codec.as_str() {
         "mjpeg" => {
             args.push("-q:v".to_string());
@@ -102,8 +102,12 @@ fn add_still_image_codec_args(args: &mut Vec<String>, config: &ConversionConfig)
             args.push(config.image_webp_quality.min(100).to_string());
             args.push("-compression_level".to_string());
             args.push(config.image_webp_compression.min(6).to_string());
-            args.push("-preset".to_string());
-            args.push(normalize_webp_preset(&config.image_webp_preset).to_string());
+            // FFmpeg's preset replaces the lossless and compression settings above.
+            let preset = normalize_webp_preset(&config.image_webp_preset);
+            if !config.image_webp_lossless && preset != "default" {
+                args.push("-preset".to_string());
+                args.push(preset.to_string());
+            }
         }
         "png" => {
             args.push("-compression_level".to_string());

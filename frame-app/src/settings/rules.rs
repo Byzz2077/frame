@@ -28,6 +28,11 @@ pub const fn is_gif_container(container: &str) -> bool {
 }
 
 #[must_use]
+pub const fn is_webp_container(container: &str) -> bool {
+    media_rules::is_webp_container(container)
+}
+
+#[must_use]
 pub fn container_supports_audio(container: &str) -> bool {
     media_rules::container_supports_audio(container)
 }

@@ -86,7 +86,7 @@ impl FrameTextInputKind {
             Self::VideoCustomWidth => "Video width",
             Self::VideoCustomHeight => "Video height",
             Self::VideoBitrate => "Video bitrate",
-            Self::GifLoop => "GIF loop count",
+            Self::GifLoop => "Loop count",
             Self::PreviewStartTime => "Preview start time",
             Self::PreviewEndTime => "Preview end time",
             Self::MetadataTitle => "Metadata title",

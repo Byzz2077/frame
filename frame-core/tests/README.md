@@ -39,6 +39,7 @@ Coverage currently includes:
 - audio-only outputs: MP3, M4A/AAC, WAV/PCM, FLAC
 - still-image outputs: PNG, JPEG, WebP, BMP, TIFF
 - GIF palette output
+- animated WebP output from video sources
 - pixel-format output checks for x264: `yuv420p`, `yuv422p`, `yuv444p`, `yuv420p10le`
 - odd source dimensions padded before yuv420p/x264 encoding
 - transforms verified by pixels: rotate, horizontal flip, vertical flip, crop, overlay

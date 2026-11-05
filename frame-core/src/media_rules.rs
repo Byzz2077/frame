@@ -152,6 +152,17 @@ pub const fn is_gif_container(container: &str) -> bool {
 }
 
 #[must_use]
+pub const fn is_webp_container(container: &str) -> bool {
+    container.eq_ignore_ascii_case("webp")
+}
+
+/// WebP is animated when the source has frames to keep; still images stay single-frame.
+#[must_use]
+pub const fn is_animated_webp_output(container: &str, media_kind: &str) -> bool {
+    is_webp_container(container) && media_kind.eq_ignore_ascii_case("video")
+}
+
+#[must_use]
 pub fn container_supports_audio(container: &str) -> bool {
     !is_video_only_container(container) && !is_image_container(container)
 }

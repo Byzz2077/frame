@@ -830,7 +830,9 @@ pub fn normalize_output_config(
         reset_subtitle_settings(config);
     }
 
-    if (source_kind == SourceKind::Image || is_gif_container(&config.container))
+    if (source_kind == SourceKind::Image
+        || is_gif_container(&config.container)
+        || is_image_container(&config.container))
         && config.processing_mode == ProcessingMode::Copy
     {
         config.processing_mode = ProcessingMode::Reencode;
@@ -935,6 +937,10 @@ pub fn normalize_video_config(
         config.selected_subtitle_tracks.clear();
         config.video_filters.deinterlace = super::model::DeinterlaceMode::Off;
         reset_subtitle_settings(config);
+    }
+
+    if is_image_container(&config.container) {
+        config.video_filters.deinterlace = super::model::DeinterlaceMode::Off;
     }
 
     if is_audio_container {

@@ -175,7 +175,7 @@ fn settings_image_jpeg_section(
         ))
 }
 
-fn settings_image_webp_section(
+pub(in crate::app) fn settings_image_webp_section(
     config: &ConversionConfig,
     settings_disabled: bool,
     palette: &'static theme::ThemePalette,
